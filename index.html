@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description"
+        content="MyCashFlow - Modern Personal Finance Management App for tracking income, expenses, budgets, and savings goals">
+    <title>MyCashFlow - Personal Finance Management</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="stylesheet" href="index.css">
+</head>
+
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <svg class="logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path d="M12 2L2 7l10 5 10-5-10-5z" />
+                    <path d="M2 17l10 5 10-5" />
+                    <path d="M2 12l10 5 10-5" />
+                </svg>
+                <h1>MyCashFlow</h1>
+            </div>
+            <div class="nav-menu">
+                <button class="nav-link active" data-page="dashboard">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <rect x="3" y="3" width="7" height="7" />
+                        <rect x="14" y="3" width="7" height="7" />
+                        <rect x="14" y="14" width="7" height="7" />
+                        <rect x="3" y="14" width="7" height="7" />
+                    </svg>
+                    Dashboard
+                </button>
+                <button class="nav-link" data-page="transactions">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <line x1="12" y1="1" x2="12" y2="23" />
+                        <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+                    </svg>
+                    Transactions
+                </button>
+                <button class="nav-link" data-page="budgets">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <circle cx="12" cy="12" r="10" />
+                        <path
+                            d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+                    </svg>
+                    Budgets
+                </button>
+                <button class="nav-link" data-page="goals">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                        <polyline points="22 4 12 14.01 9 11.01" />
+                    </svg>
+                    Goals
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Dashboard Page -->
+        <section id="dashboard-page" class="page active">
+            <div class="page-header">
+                <div>
+                    <h2>Financial Dashboard</h2>
+                    <p class="page-subtitle">Your complete financial overview</p>
+                </div>
+                <button class="btn-primary" id="add-transaction-btn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <line x1="12" y1="5" x2="12" y2="19" />
+                        <line x1="5" y1="12" x2="19" y2="12" />
+                    </svg>
+                    Add Transaction
+                </button>
+            </div>
+
+            <!-- Stats Cards -->
+            <div class="stats-grid">
+                <div class="stat-card income-card">
+                    <div class="stat-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
+                            <polyline points="17 6 23 6 23 12" />
+                        </svg>
+                    </div>
+                    <div class="stat-content">
+                        <p class="stat-label">Total Income</p>
+                        <h3 class="stat-value" id="total-income">₹0.00</h3>
+                        <p class="stat-change positive">This month</p>
+                    </div>
+                </div>
+
+                <div class="stat-card expense-card">
+                    <div class="stat-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <polyline points="23 18 13.5 8.5 8.5 13.5 1 6" />
+                            <polyline points="17 18 23 18 23 12" />
+                        </svg>
+                    </div>
+                    <div class="stat-content">
+                        <p class="stat-label">Total Expenses</p>
+                        <h3 class="stat-value" id="total-expenses">₹0.00</h3>
+                        <p class="stat-change negative">This month</p>
+                    </div>
+                </div>
+
+                <div class="stat-card balance-card">
+                    <div class="stat-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <rect x="1" y="4" width="22" height="16" rx="2" ry="2" />
+                            <line x1="1" y1="10" x2="23" y2="10" />
+                        </svg>
+                    </div>
+                    <div class="stat-content">
+                        <p class="stat-label">Net Balance</p>
+                        <h3 class="stat-value" id="net-balance">₹0.00</h3>
+                        <p class="stat-change">Current balance</p>
+                    </div>
+                </div>
+
+                <div class="stat-card savings-card">
+                    <div class="stat-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                            <polyline points="22 4 12 14.01 9 11.01" />
+                        </svg>
+                    </div>
+                    <div class="stat-content">
+                        <p class="stat-label">Savings Goals</p>
+                        <h3 class="stat-value" id="goals-progress">0%</h3>
+                        <p class="stat-change">Average progress</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts Section -->
+            <div class="charts-grid">
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <h3>Spending by Category</h3>
+                        <select id="category-chart-period" class="chart-select">
+                            <option value="month">This Month</option>
+                            <option value="year">This Year</option>
+                            <option value="all">All Time</option>
+                        </select>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="category-chart"></canvas>
+                    </div>
+                </div>
+
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <h3>Income vs Expenses</h3>
+                        <select id="trend-chart-period" class="chart-select">
+                            <option value="6months">Last 6 Months</option>
+                            <option value="year">Last Year</option>
+                            <option value="all">All Time</option>
+                        </select>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="trend-chart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Transactions -->
+            <div class="recent-section">
+                <div class="section-header">
+                    <h3>Recent Transactions</h3>
+                    <button class="btn-text" id="view-all-transactions">View All</button>
+                </div>
+                <div class="transactions-list" id="recent-transactions">
+                    <div class="empty-state">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <circle cx="12" cy="12" r="10" />
+                            <line x1="12" y1="8" x2="12" y2="12" />
+                            <line x1="12" y1="16" x2="12.01" y2="16" />
+                        </svg>
+                        <p>No transactions yet</p>
+                        <button class="btn-secondary"
+                            onclick="document.getElementById('add-transaction-btn').click()">Add Your First
+                            Transaction</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Transactions Page -->
+        <section id="transactions-page" class="page">
+            <div class="page-header">
+                <div>
+                    <h2>Transactions</h2>
+                    <p class="page-subtitle">Manage all your income and expenses</p>
+                </div>
+                <div class="header-actions">
+                    <button class="btn-secondary" id="manage-categories-btn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="M12 20h9" />
+                            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+                        </svg>
+                        Manage Categories
+                    </button>
+                    <button class="btn-primary" id="add-transaction-btn-2">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <line x1="12" y1="5" x2="12" y2="19" />
+                            <line x1="5" y1="12" x2="19" y2="12" />
+                        </svg>
+                        Add Transaction
+                    </button>
+                </div>
+            </div>
+
+            <!-- Filters -->
+            <div class="filters-bar">
+                <div class="filter-group">
+                    <label>Type</label>
+                    <select id="filter-type" class="filter-select">
+                        <option value="all">All Types</option>
+                        <option value="income">Income</option>
+                        <option value="expense">Expense</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Category</label>
+                    <select id="filter-category" class="filter-select">
+                        <option value="all">All Categories</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Period</label>
+                    <select id="filter-period" class="filter-select">
+                        <option value="all">All Time</option>
+                        <option value="today">Today</option>
+                        <option value="week">This Week</option>
+                        <option value="month">This Month</option>
+                        <option value="year">This Year</option>
+                    </select>
+                </div>
+                <button class="btn-text" id="clear-filters">Clear Filters</button>
+            </div>
+
+            <!-- Transactions List -->
+            <div class="transactions-container" id="all-transactions">
+                <div class="empty-state">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="8" x2="12" y2="12" />
+                        <line x1="12" y1="16" x2="12.01" y2="16" />
+                    </svg>
+                    <p>No transactions found</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Budgets Page -->
+        <section id="budgets-page" class="page">
+            <div class="page-header">
+                <div>
+                    <h2>Budget Management</h2>
+                    <p class="page-subtitle">Set and track your spending limits</p>
+                </div>
+                <button class="btn-primary" id="add-budget-btn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <line x1="12" y1="5" x2="12" y2="19" />
+                        <line x1="5" y1="12" x2="19" y2="12" />
+                    </svg>
+                    Create Budget
+                </button>
+            </div>
+
+            <div class="budgets-grid" id="budgets-container">
+                <div class="empty-state">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <circle cx="12" cy="12" r="10" />
+                        <path
+                            d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+                    </svg>
+                    <p>No budgets created yet</p>
+                    <button class="btn-secondary" onclick="document.getElementById('add-budget-btn').click()">Create
+                        Your First Budget</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Goals Page -->
+        <section id="goals-page" class="page">
+            <div class="page-header">
+                <div>
+                    <h2>Savings Goals</h2>
+                    <p class="page-subtitle">Track your financial objectives</p>
+                </div>
+                <button class="btn-primary" id="add-goal-btn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <line x1="12" y1="5" x2="12" y2="19" />
+                        <line x1="5" y1="12" x2="19" y2="12" />
+                    </svg>
+                    Add Goal
+                </button>
+            </div>
+
+            <div class="goals-grid" id="goals-container">
+                <div class="empty-state">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                        <polyline points="22 4 12 14.01 9 11.01" />
+                    </svg>
+                    <p>No savings goals yet</p>
+                    <button class="btn-secondary" onclick="document.getElementById('add-goal-btn').click()">Set Your
+                        First Goal</button>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Add Transaction Modal -->
+    <div class="modal" id="transaction-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Add Transaction</h3>
+                <button class="modal-close" id="close-transaction-modal">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <line x1="18" y1="6" x2="6" y2="18" />
+                        <line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                </button>
+            </div>
+            <form id="transaction-form">
+                <div class="form-group">
+                    <label>Type</label>
+                    <div class="toggle-group">
+                        <button type="button" class="toggle-btn active" data-type="expense">Expense</button>
+                        <button type="button" class="toggle-btn" data-type="income">Income</button>
+                    </div>
+                    <input type="hidden" id="transaction-type" value="expense">
+                </div>
+
+                <div class="form-group">
+                    <label for="transaction-amount">Amount (₹)</label>
+                    <input type="number" id="transaction-amount" step="0.01" min="0" required placeholder="0.00">
+                </div>
+
+                <div class="form-group">
+                    <label for="transaction-category">Category</label>
+                    <select id="transaction-category" required>
+                        <option value="">Select Category</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="transaction-description">Description</label>
+                    <input type="text" id="transaction-description" required placeholder="Enter description">
+                </div>
+
+                <div class="form-group">
+                    <label for="transaction-date">Date</label>
+                    <input type="date" id="transaction-date" required>
+                </div>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" id="cancel-transaction">Cancel</button>
+                    <button type="submit" class="btn-primary">Add Transaction</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add Budget Modal -->
+    <div class="modal" id="budget-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Create Budget</h3>
+                <button class="modal-close" id="close-budget-modal">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <line x1="18" y1="6" x2="6" y2="18" />
+                        <line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                </button>
+            </div>
+            <form id="budget-form">
+                <div class="form-group">
+                    <label for="budget-category">Category</label>
+                    <select id="budget-category" required>
+                        <option value="">Select Category</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="budget-amount">Monthly Limit (₹)</label>
+                    <input type="number" id="budget-amount" step="0.01" min="0" required placeholder="0.00">
+                </div>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" id="cancel-budget">Cancel</button>
+                    <button type="submit" class="btn-primary">Create Budget</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add Goal Modal -->
+    <div class="modal" id="goal-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="goal-modal-title">Add Savings Goal</h3>
+                <button class="modal-close" id="close-goal-modal">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <line x1="18" y1="6" x2="6" y2="18" />
+                        <line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                </button>
+            </div>
+            <form id="goal-form">
+                <div class="form-group">
+                    <label for="goal-name">Goal Name</label>
+                    <input type="text" id="goal-name" required placeholder="e.g., Emergency Fund">
+                </div>
+
+                <div class="form-group">
+                    <label for="goal-target">Target Amount (₹)</label>
+                    <input type="number" id="goal-target" step="0.01" min="0" required placeholder="0.00">
+                </div>
+
+                <div class="form-group">
+                    <label for="goal-current">Current Amount (₹)</label>
+                    <input type="number" id="goal-current" step="0.01" min="0" value="0" placeholder="0.00">
+                </div>
+
+                <div class="form-group">
+                    <label for="goal-deadline">Target Date</label>
+                    <input type="date" id="goal-deadline">
+                </div>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" id="cancel-goal">Cancel</button>
+                    <button type="submit" class="btn-primary">Save Goal</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Manage Categories Modal -->
+    <div class="modal" id="categories-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Manage Categories</h3>
+                <button class="modal-close" id="close-categories-modal">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <line x1="18" y1="6" x2="6" y2="18" />
+                        <line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                </button>
+            </div>
+            <div class="categories-manager">
+                <div class="toggle-group" style="margin-bottom: 20px;">
+                    <button type="button" class="toggle-btn active" id="cat-toggle-expense"
+                        data-type="expense">Expense</button>
+                    <button type="button" class="toggle-btn" id="cat-toggle-income" data-type="income">Income</button>
+                </div>
+
+                <form id="add-category-form" class="add-category-form">
+                    <input type="text" id="new-category-name" placeholder="New category name" required>
+                    <button type="submit" class="btn-primary" style="width: auto; padding: 0 15px;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" style="margin: 0;">
+                            <line x1="12" y1="5" x2="12" y2="19" />
+                            <line x1="5" y1="12" x2="19" y2="12" />
+                        </svg>
+                    </button>
+                </form>
+
+                <div class="categories-list" id="categories-list">
+                    <!-- Categories will be populated here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Money Modal -->
+    <div class="modal" id="add-money-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Add Money to Goal</h3>
+                <button class="modal-close" id="close-add-money-modal">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <line x1="18" y1="6" x2="6" y2="18" />
+                        <line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                </button>
+            </div>
+            <form id="add-money-form">
+                <input type="hidden" id="add-money-goal-id">
+                <div class="form-group">
+                    <label for="add-money-amount">Amount to Add (₹)</label>
+                    <input type="number" id="add-money-amount" step="0.01" min="0.01" required placeholder="0.00">
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" id="cancel-add-money">Cancel</button>
+                    <button type="submit" class="btn-primary">Add Money</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+
+</html>
