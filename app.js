@@ -211,10 +211,135 @@ class FinanceManager {
     }
 }
 
-// ===== UI Manager =====
-class UIManager {
+// ===== AI Manager =====
+class AIManager {
     constructor(financeManager) {
         this.fm = financeManager;
+        this.apiKey = localStorage.getItem('gemini_api_key') || '';
+        this.apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
+    }
+
+    setApiKey(key) {
+        this.apiKey = key;
+        localStorage.setItem('gemini_api_key', key);
+    }
+
+    hasApiKey() {
+        return !!this.apiKey;
+    }
+
+    async callGemini(prompt) {
+        if (!this.apiKey) {
+            throw new Error('API Key not found');
+        }
+
+        try {
+            const response = await fetch(`${this.apiUrl}?key=${this.apiKey}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    contents: [{
+                        parts: [{
+                            text: prompt
+                        }]
+                    }]
+                })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error?.message || 'Failed to fetch from Gemini');
+            }
+
+            const data = await response.json();
+            return data.candidates[0].content.parts[0].text;
+        } catch (error) {
+            console.error('Gemini API Error:', error);
+            throw error;
+        }
+    }
+
+    prepareContextData() {
+        const stats = this.fm.getStats('month');
+        const transactions = this.fm.getTransactions({ period: 'month' }).slice(0, 20); // Last 20 transactions
+        const categoryData = this.fm.getCategoryData('month');
+        const goals = this.fm.goals;
+        const budgets = this.fm.budgets;
+
+        return JSON.stringify({
+            currentMonthStats: stats,
+            // trends: this.fm.getTrendData(3),
+            topExpenses: Object.entries(categoryData)
+                .sort(([, a], [, b]) => b - a)
+                .slice(0, 5)
+                .map(([cat, amount]) => ({ category: cat, amount })),
+            goals: goals.map(g => ({ name: g.name, target: g.target, current: g.current, deadline: g.deadline })),
+            recentTransactions: transactions.map(t => ({
+                date: t.date,
+                type: t.type,
+                category: t.category,
+                amount: t.amount,
+                description: t.description
+            }))
+        }, null, 2);
+    }
+
+    async generateTip() {
+        const context = this.prepareContextData();
+        const prompt = `
+            Act as a financial advisor. Based on the following user financial data (JSON), provide a SINGLE, short, actionable, and encouraging financial tip (max 2 sentences).
+            Focus on saving more or spending wisely based on their recent behavior.
+            User Data:
+            ${context}
+        `;
+        return await this.callGemini(prompt);
+    }
+
+    async generateReport() {
+        const context = this.prepareContextData();
+        const prompt = `
+            Act as a financial advisor. Analyze the following user financial data (JSON) and provide a comprehensive monthly report.
+            The report should include:
+            1. **Summary**: Brief overview of financial health this month.
+            2. **Spending Analysis**: Where is the money going? Any alarming categories?
+            3. **Savings Review**: Progress on goals and suggestions.
+            4. **Recommendations**: 3 concrete steps to improve next month.
+            
+            Format the output in clean Markdown. Use bolding and lists.
+            User Data:
+            ${context}
+        `;
+        return await this.callGemini(prompt);
+    }
+
+    async generatePlan(targetIncome, targetDate) {
+        const context = this.prepareContextData();
+        const prompt = `
+            Act as a financial strategist. The user wants to achieve a monthly income/savings goal of ${targetIncome} by ${targetDate}.
+            
+            Current Context:
+            ${context}
+            
+            Provide a detailed, step-by-step plan to achieve this goal responsibly.
+            Include:
+            1. **Feasibility Check**: Is this realistic based on current income/expenses?
+            2. **Expense Optimization**: Where can they cut costs immediately to free up cash?
+            3. **Income Generation Ideas**: General suggestions (freelancing, upskilling) if current income isn't enough.
+            4. **Timeline**: Milestones to hit by the target date.
+            
+            Format the output in clean Markdown. Be encouraging but realistic.
+        `;
+        return await this.callGemini(prompt);
+    }
+}
+
+// ===== UI Manager =====
+class UIManager {
+    constructor(financeManager, aiManager) {
+        this.fm = financeManager;
+        this.ai = aiManager;
         this.currentPage = 'dashboard';
         this.charts = {};
         this.initializeEventListeners();
@@ -401,6 +526,76 @@ class UIManager {
                 this.fm.updateGoal(id, { current: newCurrent.toString() });
                 this.closeModal('add-money-modal');
                 this.render();
+            }
+        });
+
+        // Settings Modal
+        document.getElementById('settings-btn')?.addEventListener('click', () => {
+            document.getElementById('gemini-api-key').value = this.ai.apiKey;
+            this.openModal('settings-modal');
+        });
+
+        document.getElementById('close-settings-modal')?.addEventListener('click', () => {
+            this.closeModal('settings-modal');
+        });
+
+        document.getElementById('cancel-settings')?.addEventListener('click', () => {
+            this.closeModal('settings-modal');
+        });
+
+        document.getElementById('settings-form')?.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const key = document.getElementById('gemini-api-key').value.trim();
+            this.ai.setApiKey(key);
+            this.closeModal('settings-modal');
+            this.renderDashboard();
+        });
+
+        // AI Features
+        document.getElementById('ai-action-btn')?.addEventListener('click', async () => {
+            if (!this.ai.hasApiKey()) {
+                this.openModal('settings-modal');
+            } else {
+                this.navigateTo('ai-report');
+                // Auto generate report if empty
+                if (!document.getElementById('ai-detailed-analysis').dataset.loaded) {
+                    const container = document.getElementById('ai-detailed-analysis');
+                    container.innerHTML = '<div class="loading-spinner"></div><p>Generating analysis...</p>';
+                    try {
+                        const report = await this.ai.generateReport();
+                        container.innerHTML = marked.parse(report);
+                        container.dataset.loaded = 'true';
+                    } catch (error) {
+                        container.innerHTML = `<p style="color: var(--expense-color)">Error: ${error.message}</p>`;
+                    }
+                }
+            }
+        });
+
+        document.getElementById('ai-back-btn')?.addEventListener('click', () => {
+            this.navigateTo('dashboard');
+        });
+
+        document.getElementById('generate-plan-btn')?.addEventListener('click', async () => {
+            const amount = document.getElementById('ai-income-goal').value;
+            const date = document.getElementById('ai-income-date').value;
+
+            if (!amount || !date) {
+                alert('Please enter both amount and date');
+                return;
+            }
+
+            const planContainer = document.getElementById('ai-generated-plan');
+            const planSection = document.getElementById('ai-plan-section');
+
+            planSection.style.display = 'block';
+            planContainer.innerHTML = '<div class="loading-spinner"></div><p>Generating plan...</p>';
+
+            try {
+                const plan = await this.ai.generatePlan(amount, date);
+                planContainer.innerHTML = marked.parse(plan);
+            } catch (error) {
+                planContainer.innerHTML = `<p style="color: var(--expense-color)">Error: ${error.message}</p>`;
             }
         });
     }
@@ -717,6 +912,22 @@ class UIManager {
 
         // Update recent transactions
         this.renderRecentTransactions();
+
+        // Update AI Insight
+        const tipBox = document.getElementById('ai-tip-text');
+        if (!this.ai.hasApiKey()) {
+            tipBox.textContent = 'Connect your Gemini API key in settings to get personalized financial advice.';
+            delete tipBox.dataset.loaded;
+        } else if (!tipBox.dataset.loaded) {
+            tipBox.innerHTML = 'Analyzing finances...';
+            this.ai.generateTip().then(tip => {
+                tipBox.textContent = tip;
+                tipBox.dataset.loaded = 'true';
+            }).catch(err => {
+                tipBox.textContent = 'Could not generate tip. Check your API key. ' + err.message;
+                console.error(err);
+            });
+        }
     }
 
     renderRecentTransactions() {
@@ -1037,11 +1248,17 @@ class UIManager {
 // ===== Initialize Application =====
 let app;
 
+// Load marked.js for Markdown parsing
+const markedScript = document.createElement('script');
+markedScript.src = 'https://cdn.jsdelivr.net/npm/marked/marked.min.js';
+document.head.appendChild(markedScript);
+
 // Load Chart.js from CDN
 const script = document.createElement('script');
 script.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js';
 script.onload = () => {
     const financeManager = new FinanceManager();
-    app = new UIManager(financeManager);
+    const aiManager = new AIManager(financeManager);
+    app = new UIManager(financeManager, aiManager);
 };
 document.head.appendChild(script);
