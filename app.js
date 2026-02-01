@@ -215,36 +215,60 @@ class FinanceManager {
 class AIManager {
     constructor(financeManager) {
         this.fm = financeManager;
-        this.apiKey = localStorage.getItem('gemini_api_key') || '';
-        this.apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent';
+        this.apiKey = localStorage.getItem('ai_api_key') || '';
+        this.modelName = 'gemini-2.5-flash';
+        this.apiUrl = 'https://generativelanguage.googleapis.com/v1/models';
     }
 
     setApiKey(key) {
         this.apiKey = key;
-        localStorage.setItem('gemini_api_key', key);
+        localStorage.setItem('ai_api_key', key);
     }
 
     hasApiKey() {
         return !!this.apiKey;
     }
 
+    async validateApiKey(key) {
+        try {
+            // Test with a very simple call to verify the key
+            const res = await fetch(`${this.apiUrl}/${this.modelName}:generateContent?key=${key}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: [{ parts: [{ text: 'hi' }] }]
+                })
+            });
+
+            if (res.ok) return { isValid: true };
+
+            const errorData = await res.json();
+            return { isValid: false, message: errorData.error?.message || 'Invalid API Key' };
+        } catch (error) {
+            console.error('Validation failed:', error);
+            return { isValid: false, message: error.message };
+        }
+    }
+
     async callGemini(prompt) {
         if (!this.apiKey) {
-            throw new Error('API Key not found');
+            throw new Error('Gemini API Key not found. Please add it in Settings.');
         }
 
         try {
-            const response = await fetch(`${this.apiUrl}?key=${this.apiKey}`, {
+            const response = await fetch(`${this.apiUrl}/${this.modelName}:generateContent?key=${this.apiKey}`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     contents: [{
                         parts: [{
                             text: prompt
                         }]
-                    }]
+                    }],
+                    generationConfig: {
+                        temperature: 0.7,
+                        maxOutputTokens: 1000,
+                    }
                 })
             });
 
@@ -254,7 +278,10 @@ class AIManager {
             }
 
             const data = await response.json();
-            return data.candidates[0].content.parts[0].text;
+            if (data.candidates && data.candidates[0] && data.candidates[0].content) {
+                return data.candidates[0].content.parts[0].text;
+            }
+            throw new Error('Empty response from Gemini');
         } catch (error) {
             console.error('Gemini API Error:', error);
             throw error;
@@ -266,11 +293,9 @@ class AIManager {
         const transactions = this.fm.getTransactions({ period: 'month' }).slice(0, 20); // Last 20 transactions
         const categoryData = this.fm.getCategoryData('month');
         const goals = this.fm.goals;
-        const budgets = this.fm.budgets;
 
         return JSON.stringify({
             currentMonthStats: stats,
-            // trends: this.fm.getTrendData(3),
             topExpenses: Object.entries(categoryData)
                 .sort(([, a], [, b]) => b - a)
                 .slice(0, 5)
@@ -531,7 +556,7 @@ class UIManager {
 
         // Settings Modal
         document.getElementById('settings-btn')?.addEventListener('click', () => {
-            document.getElementById('gemini-api-key').value = this.ai.apiKey;
+            document.getElementById('ai-api-key').value = this.ai.apiKey;
             this.openModal('settings-modal');
         });
 
@@ -543,12 +568,35 @@ class UIManager {
             this.closeModal('settings-modal');
         });
 
-        document.getElementById('settings-form')?.addEventListener('submit', (e) => {
+        document.getElementById('settings-form')?.addEventListener('submit', async (e) => {
             e.preventDefault();
-            const key = document.getElementById('gemini-api-key').value.trim();
-            this.ai.setApiKey(key);
-            this.closeModal('settings-modal');
-            this.renderDashboard();
+            const keyInput = document.getElementById('ai-api-key');
+            const saveBtn = e.target.querySelector('button[type="submit"]');
+            const originalBtnText = saveBtn.textContent;
+
+            const key = keyInput.value.trim();
+            if (!key) return;
+
+            // Show loading state
+            saveBtn.textContent = 'Validating...';
+            saveBtn.disabled = true;
+            keyInput.disabled = true;
+
+            const { isValid, message } = await this.ai.validateApiKey(key);
+
+            if (isValid) {
+                this.ai.setApiKey(key);
+                this.closeModal('settings-modal');
+                this.renderDashboard();
+                alert('API Key validated and saved successfully!');
+            } else {
+                alert(`API Validation Failed: ${message}\n\nPlease check your key or region access.`);
+            }
+
+            // Restore button state
+            saveBtn.textContent = originalBtnText;
+            saveBtn.disabled = false;
+            keyInput.disabled = false;
         });
 
         // AI Features
@@ -1246,19 +1294,9 @@ class UIManager {
 }
 
 // ===== Initialize Application =====
-let app;
+const financeManager = new FinanceManager();
+const aiManager = new AIManager(financeManager);
+const app = new UIManager(financeManager, aiManager);
 
-// Load marked.js for Markdown parsing
-const markedScript = document.createElement('script');
-markedScript.src = 'https://cdn.jsdelivr.net/npm/marked/marked.min.js';
-document.head.appendChild(markedScript);
-
-// Load Chart.js from CDN
-const script = document.createElement('script');
-script.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js';
-script.onload = () => {
-    const financeManager = new FinanceManager();
-    const aiManager = new AIManager(financeManager);
-    app = new UIManager(financeManager, aiManager);
-};
-document.head.appendChild(script);
+// Export app instance if needed (though modules scope variables)
+window.app = app;

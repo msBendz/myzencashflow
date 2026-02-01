@@ -100,7 +100,8 @@
                 </div>
                 <div class="ai-content">
                     <h3>Smart AI Insights</h3>
-                    <div id="ai-tip-text">Connect your Gemini API key in settings to get personalized financial advice.
+                    <div id="ai-tip-text">Connect your Gemini 2.5 Flash API key in settings to get personalized
+                        financial advice.
                     </div>
                 </div>
                 <div class="ai-action">
@@ -598,10 +599,10 @@
             </div>
             <form id="settings-form">
                 <div class="form-group">
-                    <label for="gemini-api-key">Gemini API Key</label>
-                    <input type="password" id="gemini-api-key" placeholder="Enter your API Key">
+                    <label for="ai-api-key">Gemini 2.5 Flash API Key</label>
+                    <input type="password" id="ai-api-key" placeholder="Enter your Gemini 2.5 Flash API key">
                     <p class="form-help" style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.5rem;">
-                        Your API key is stored locally in your browser and used only to communicate with Google Gemini.
+                        Your API key is stored locally and used to generate financial insights via Google Gemini.
                     </p>
                 </div>
                 <div class="modal-actions">
@@ -612,6 +613,9 @@
         </div>
     </div>
 
+    <!-- External Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="app.js"></script>
 </body>
 
