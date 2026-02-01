@@ -216,7 +216,7 @@ class AIManager {
     constructor(financeManager) {
         this.fm = financeManager;
         this.apiKey = localStorage.getItem('gemini_api_key') || '';
-        this.apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
+        this.apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent';
     }
 
     setApiKey(key) {
