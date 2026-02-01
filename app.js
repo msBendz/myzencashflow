@@ -209,6 +209,62 @@ class FinanceManager {
 
         return trendData;
     }
+
+    // Export/Import Methods
+    exportDataJSON() {
+        const data = {
+            transactions: this.transactions,
+            budgets: this.budgets,
+            goals: this.goals,
+            categories: this.categories,
+            version: '1.0.0',
+            exportedAt: new Date().toISOString()
+        };
+        return JSON.stringify(data, null, 2);
+    }
+
+    exportTransactionsCSV() {
+        if (this.transactions.length === 0) return '';
+
+        const headers = ['Date', 'Type', 'Category', 'Amount', 'Description'];
+        const rows = this.transactions.map(t => [
+            t.date,
+            t.type,
+            t.category,
+            t.amount,
+            `"${t.description.replace(/"/g, '""')}"`
+        ]);
+
+        return [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+    }
+
+    importDataJSON(jsonString) {
+        try {
+            const data = JSON.parse(jsonString);
+
+            // Basic validation
+            if (!data.transactions || !data.budgets || !data.goals || !data.categories) {
+                throw new Error('Invalid backup file format');
+            }
+
+            // Update local state
+            this.transactions = data.transactions;
+            this.budgets = data.budgets;
+            this.goals = data.goals;
+            this.categories = data.categories;
+
+            // Save to LocalStorage
+            this.saveData('transactions', this.transactions);
+            this.saveData('budgets', this.budgets);
+            this.saveData('goals', this.goals);
+            this.saveData('categories', this.categories);
+
+            return true;
+        } catch (error) {
+            console.error('Import failed:', error);
+            throw error;
+        }
+    }
 }
 
 // ===== AI Manager =====
@@ -367,6 +423,7 @@ class UIManager {
         this.ai = aiManager;
         this.currentPage = 'dashboard';
         this.charts = {};
+        this.initializeTheme();
         this.initializeEventListeners();
         this.initializeCharts();
         this.render();
@@ -379,6 +436,11 @@ class UIManager {
                 const page = e.currentTarget.dataset.page;
                 this.navigateTo(page);
             });
+        });
+
+        // Theme Toggle
+        document.getElementById('theme-toggle-btn')?.addEventListener('click', () => {
+            this.toggleTheme();
         });
 
         // Transaction Modal
@@ -599,6 +661,44 @@ class UIManager {
             keyInput.disabled = false;
         });
 
+        // Data Export/Import Listeners
+        document.getElementById('export-json-btn')?.addEventListener('click', () => {
+            const data = this.fm.exportDataJSON();
+            this.downloadFile(data, `mycashflow_backup_${new Date().toISOString().split('T')[0]}.json`, 'application/json');
+        });
+
+        document.getElementById('export-csv-btn')?.addEventListener('click', () => {
+            const csv = this.fm.exportTransactionsCSV();
+            if (csv) {
+                this.downloadFile(csv, `mycashflow_transactions_${new Date().toISOString().split('T')[0]}.csv`, 'text/csv');
+            } else {
+                alert('No transactions to export!');
+            }
+        });
+
+        document.getElementById('import-btn')?.addEventListener('click', () => {
+            document.getElementById('import-file-input').click();
+        });
+
+        document.getElementById('import-file-input')?.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                try {
+                    const content = event.target.result;
+                    if (this.fm.importDataJSON(content)) {
+                        alert('Data imported successfully! The page will now reload.');
+                        window.location.reload();
+                    }
+                } catch (error) {
+                    alert('Failed to import data: ' + error.message);
+                }
+            };
+            reader.readAsText(file);
+        });
+
         // AI Features
         document.getElementById('ai-action-btn')?.addEventListener('click', async () => {
             if (!this.ai.hasApiKey()) {
@@ -651,6 +751,12 @@ class UIManager {
     initializeCharts() {
         // Category Chart
         const categoryCtx = document.getElementById('category-chart').getContext('2d');
+        const isLight = document.body.classList.contains('light-mode');
+        const textColor = isLight ? '#475569' : '#a0a0b8';
+        const gridColor = isLight ? 'rgba(0, 0, 0, 0.05)' : 'rgba(255, 255, 255, 0.05)';
+        const tooltipBg = isLight ? 'rgba(255, 255, 255, 0.95)' : 'rgba(26, 26, 46, 0.95)';
+        const tooltipBorder = isLight ? 'rgba(0, 0, 0, 0.1)' : 'rgba(255, 255, 255, 0.1)';
+
         this.charts.category = new Chart(categoryCtx, {
             type: 'doughnut',
             data: {
@@ -672,16 +778,16 @@ class UIManager {
                     legend: {
                         position: 'bottom',
                         labels: {
-                            color: '#a0a0b8',
+                            color: textColor,
                             padding: 15,
                             font: { size: 12 }
                         }
                     },
                     tooltip: {
-                        backgroundColor: 'rgba(26, 26, 46, 0.95)',
-                        titleColor: '#ffffff',
-                        bodyColor: '#a0a0b8',
-                        borderColor: 'rgba(255, 255, 255, 0.1)',
+                        backgroundColor: tooltipBg,
+                        titleColor: isLight ? '#0f172a' : '#ffffff',
+                        bodyColor: textColor,
+                        borderColor: tooltipBorder,
                         borderWidth: 1,
                         padding: 12,
                         displayColors: true,
@@ -731,17 +837,17 @@ class UIManager {
                     legend: {
                         position: 'bottom',
                         labels: {
-                            color: '#a0a0b8',
+                            color: textColor,
                             padding: 15,
                             font: { size: 12 },
                             usePointStyle: true
                         }
                     },
                     tooltip: {
-                        backgroundColor: 'rgba(26, 26, 46, 0.95)',
-                        titleColor: '#ffffff',
-                        bodyColor: '#a0a0b8',
-                        borderColor: 'rgba(255, 255, 255, 0.1)',
+                        backgroundColor: tooltipBg,
+                        titleColor: isLight ? '#0f172a' : '#ffffff',
+                        bodyColor: textColor,
+                        borderColor: tooltipBorder,
                         borderWidth: 1,
                         padding: 12,
                         callbacks: {
@@ -757,19 +863,19 @@ class UIManager {
                     y: {
                         beginAtZero: true,
                         ticks: {
-                            color: '#a0a0b8',
+                            color: textColor,
                             callback: (value) => '₹' + value
                         },
                         grid: {
-                            color: 'rgba(255, 255, 255, 0.05)'
+                            color: gridColor
                         }
                     },
                     x: {
                         ticks: {
-                            color: '#a0a0b8'
+                            color: textColor
                         },
                         grid: {
-                            color: 'rgba(255, 255, 255, 0.05)'
+                            color: gridColor
                         }
                     }
                 }
@@ -800,6 +906,46 @@ class UIManager {
         document.getElementById(modalId).classList.remove('active');
         const form = document.querySelector(`#${modalId} form`);
         if (form) form.reset();
+    }
+
+    downloadFile(content, fileName, contentType) {
+        const a = document.createElement('a');
+        const file = new Blob([content], { type: contentType });
+        a.href = URL.createObjectURL(file);
+        a.download = fileName;
+        a.click();
+        URL.revokeObjectURL(a.href);
+    }
+
+    initializeTheme() {
+        const theme = localStorage.getItem('theme') || 'dark';
+        if (theme === 'light') {
+            document.body.classList.add('light-mode');
+        }
+        this.updateThemeIcons();
+    }
+
+    toggleTheme() {
+        const isLight = document.body.classList.toggle('light-mode');
+        localStorage.setItem('theme', isLight ? 'light' : 'dark');
+        this.updateThemeIcons();
+
+        // Destroy and re-init charts to update colors
+        if (this.charts.category) this.charts.category.destroy();
+        if (this.charts.trend) this.charts.trend.destroy();
+        this.initializeCharts();
+        this.render();
+    }
+
+    updateThemeIcons() {
+        const isLight = document.body.classList.contains('light-mode');
+        const sunIcon = document.querySelector('.sun-icon');
+        const moonIcon = document.querySelector('.moon-icon');
+
+        if (sunIcon && moonIcon) {
+            sunIcon.style.display = isLight ? 'block' : 'none';
+            moonIcon.style.display = isLight ? 'none' : 'block';
+        }
     }
 
     setTodayDate(inputId) {

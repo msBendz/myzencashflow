@@ -53,10 +53,13 @@ A modern, feature-rich Personal Finance Management web application built with HT
 - Delete completed or cancelled goals
 - Percentage-based progress tracking
 
-### 💾 **Data Persistence**
+### 💾 **Data Persistence & Portability**
 - All data stored locally in browser's localStorage
 - No server required - works completely offline
 - Data persists across browser sessions
+- **Backup & Restore**: Export your entire data as a JSON file
+- **Excel Compatible**: Export transactions to CSV for external analysis
+- **Data Mobility**: Import backups to restore your data on any device
 - Privacy-focused - your data stays on your device
 
 ### 🎨 **Premium UI/UX**
