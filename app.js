@@ -4,11 +4,78 @@ class FinanceManager {
         this.transactions = this.loadData('transactions') || [];
         this.budgets = this.loadData('budgets') || [];
         this.goals = this.loadData('goals') || [];
+        this.recurring = this.loadData('recurring') || [];
         this.categories = this.loadData('categories') || {
             income: ['Salary', 'Freelance', 'Investment', 'Business', 'Gift', 'Other Income'],
             expense: ['Food & Dining', 'Transportation', 'Shopping', 'Entertainment', 'Bills & Utilities',
                 'Healthcare', 'Education', 'Travel', 'Rent', 'Other Expense']
         };
+
+        this.processRecurringTransactions();
+    }
+
+    processRecurringTransactions() {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        let hasChanges = false;
+
+        this.recurring.forEach(item => {
+            if (!item.isActive) return;
+
+            let nextDate = new Date(item.nextDate);
+            nextDate.setHours(0, 0, 0, 0);
+
+            while (nextDate <= today) {
+                // Create transaction
+                const transaction = {
+                    type: item.type,
+                    amount: item.amount,
+                    category: item.category,
+                    description: `${item.description} (Recurring)`,
+                    date: nextDate.toISOString().split('T')[0]
+                };
+
+                this.addTransaction(transaction, false); // false = don't save yet, we'll save once at the end
+                hasChanges = true;
+
+                // Update next date based on frequency
+                switch (item.frequency) {
+                    case 'daily':
+                        nextDate.setDate(nextDate.getDate() + 1);
+                        break;
+                    case 'weekly':
+                        nextDate.setDate(nextDate.getDate() + 7);
+                        break;
+                    case 'monthly':
+                        nextDate.setMonth(nextDate.getMonth() + 1);
+                        break;
+                    case 'yearly':
+                        nextDate.setFullYear(nextDate.getFullYear() + 1);
+                        break;
+                }
+            }
+
+            item.nextDate = nextDate.toISOString().split('T')[0];
+        });
+
+        if (hasChanges) {
+            this.saveData('transactions', this.transactions);
+            this.saveData('recurring', this.recurring);
+        }
+    }
+
+    addRecurringTransaction(data) {
+        data.id = Date.now().toString();
+        data.isActive = true;
+        this.recurring.push(data);
+        this.saveData('recurring', this.recurring);
+        this.processRecurringTransactions();
+        return data;
+    }
+
+    deleteRecurringTransaction(id) {
+        this.recurring = this.recurring.filter(r => r.id !== id);
+        this.saveData('recurring', this.recurring);
     }
 
     addCategory(type, name) {
@@ -49,10 +116,13 @@ class FinanceManager {
     }
 
     // Transaction Methods
-    addTransaction(transaction) {
-        transaction.id = Date.now().toString();
+    addTransaction(transaction, save = true) {
+        transaction.id = transaction.id || (Date.now() + Math.random()).toString();
         this.transactions.unshift(transaction);
-        this.saveData('transactions', this.transactions);
+        if (save) {
+            this.transactions.sort((a, b) => new Date(b.date) - new Date(a.date));
+            this.saveData('transactions', this.transactions);
+        }
         return transaction;
     }
 
@@ -475,6 +545,25 @@ class UIManager {
         document.getElementById('transaction-form').addEventListener('submit', (e) => {
             e.preventDefault();
             this.handleTransactionSubmit();
+        });
+
+        // Recurring Toggle
+        document.getElementById('transaction-is-recurring')?.addEventListener('change', (e) => {
+            document.getElementById('recurring-options').style.display = e.target.checked ? 'block' : 'none';
+        });
+
+        // Recurring Management
+        document.getElementById('manage-recurring-btn')?.addEventListener('click', () => {
+            this.openModal('recurring-modal');
+            this.renderRecurringList();
+        });
+
+        document.getElementById('close-recurring-modal')?.addEventListener('click', () => {
+            this.closeModal('recurring-modal');
+        });
+
+        document.getElementById('close-recurring-btn')?.addEventListener('click', () => {
+            this.closeModal('recurring-modal');
         });
 
         // Budget Modal
@@ -1023,6 +1112,60 @@ class UIManager {
         });
     }
 
+    renderRecurringList() {
+        const container = document.getElementById('recurring-list');
+        const recurring = this.fm.recurring;
+
+        if (recurring.length === 0) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <p>No recurring transactions yet</p>
+                </div>
+            `;
+            return;
+        }
+
+        container.innerHTML = recurring.map(item => `
+            <div class="transaction-item">
+                <div class="transaction-icon ${item.type}">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        ${item.type === 'income'
+                ? '<polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/>'
+                : '<polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/>'
+            }
+                    </svg>
+                </div>
+                <div class="transaction-details">
+                    <div class="transaction-category">${item.category}</div>
+                    <div class="transaction-description">${item.description}</div>
+                    <small style="color: var(--text-tertiary)">Frequency: ${item.frequency} | Next: ${new Date(item.nextDate).toLocaleDateString()}</small>
+                </div>
+                <div class="transaction-meta">
+                    <div class="transaction-amount ${item.type}">
+                        ₹${parseFloat(item.amount).toFixed(2)}
+                    </div>
+                </div>
+                <button class="transaction-delete" data-recurring-id="${item.id}">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <polyline points="3 6 5 6 21 6"/>
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                    </svg>
+                </button>
+            </div>
+        `).join('');
+
+        // Add delete listeners
+        container.querySelectorAll('.transaction-delete').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const id = e.currentTarget.dataset.recurringId;
+                if (confirm('Stop this recurring transaction? New transactions will no longer be generated.')) {
+                    this.fm.deleteRecurringTransaction(id);
+                    this.renderRecurringList();
+                }
+            });
+        });
+    }
+
     updateAllCategorySelects() {
         const transactionType = document.getElementById('transaction-type').value;
         this.updateCategoryOptions(transactionType);
@@ -1031,6 +1174,7 @@ class UIManager {
     }
 
     handleTransactionSubmit() {
+        const isRecurring = document.getElementById('transaction-is-recurring').checked;
         const transaction = {
             type: document.getElementById('transaction-type').value,
             amount: document.getElementById('transaction-amount').value,
@@ -1040,6 +1184,35 @@ class UIManager {
         };
 
         this.fm.addTransaction(transaction);
+
+        if (isRecurring) {
+            const frequency = document.getElementById('transaction-frequency').value;
+            const recurringData = {
+                type: transaction.type,
+                amount: transaction.amount,
+                category: transaction.category,
+                description: transaction.description,
+                frequency: frequency,
+                nextDate: transaction.date // Start counting from the initial transaction date
+            };
+
+            // Calculate next date based on frequency to avoid double entry today
+            const nextDate = new Date(transaction.date);
+            switch (frequency) {
+                case 'daily': nextDate.setDate(nextDate.getDate() + 1); break;
+                case 'weekly': nextDate.setDate(nextDate.getDate() + 7); break;
+                case 'monthly': nextDate.setMonth(nextDate.getMonth() + 1); break;
+                case 'yearly': nextDate.setFullYear(nextDate.getFullYear() + 1); break;
+            }
+            recurringData.nextDate = nextDate.toISOString().split('T')[0];
+
+            this.fm.addRecurringTransaction(recurringData);
+        }
+
+        // Reset recurring fields
+        document.getElementById('transaction-is-recurring').checked = false;
+        document.getElementById('recurring-options').style.display = 'none';
+
         this.closeModal('transaction-modal');
         this.render();
     }

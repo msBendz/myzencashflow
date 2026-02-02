@@ -345,9 +345,10 @@ body::before {
 
 /* Specific styling for icon-only buttons in header */
 .header-actions .btn-secondary {
-    width: 44px;
+    min-width: 44px;
+    width: auto;
     height: 44px;
-    padding: 0;
+    padding: 0 var(--spacing-md);
     flex-shrink: 0;
     background: var(--bg-header-btn);
 }
